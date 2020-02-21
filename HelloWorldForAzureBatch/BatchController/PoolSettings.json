@@ -1,0 +1,8 @@
+{
+  "PoolId": "HelloWorldPool",
+  "JobId": "HelloWorldJob",
+  "PoolNodeCount": 2,
+  "PoolOSFamily": "6",
+  "PoolVMSize": "Standard_A1_v2",
+  "ShouldDeleteJob": true
+}

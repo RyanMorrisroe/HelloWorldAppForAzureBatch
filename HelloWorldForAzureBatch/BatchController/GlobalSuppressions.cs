@@ -8,3 +8,4 @@
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "It's fine here", Scope = "member", Target = "~M:BatchController.BatchControllerFunction.Run(Microsoft.Extensions.Logging.ILogger)~System.Threading.Tasks.Task{Microsoft.AspNetCore.Mvc.IActionResult}")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA5377:Use Container Level Access Policy", Justification = "Normally you would as long as you can use Azure AD everywhere")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1056:Uri properties should not be strings", Justification = "Uri's aren't working for some reason", Scope = "member", Target = "~P:BatchController.BatchAccountSettings.AccountUrl")]

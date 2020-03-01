@@ -74,7 +74,7 @@ namespace BatchController
             {
                 AccountName = Environment.GetEnvironmentVariable("BATCH_ACCOUNT_NAME"),
                 AccountKey = Environment.GetEnvironmentVariable("BATCH_ACCOUNT_KEY"),
-                AccountUrl = new Uri(Environment.GetEnvironmentVariable("BATCH_ACCOUNT_URL"))
+                AccountUrl = Environment.GetEnvironmentVariable("BATCH_ACCOUNT_URL")
             };
             batchSettings.Applications.Add(
                 new BatchApplicationSettings()
@@ -99,7 +99,7 @@ namespace BatchController
                 await outputContainer.CreateIfNotExistsAsync().ConfigureAwait(true);
             }
 
-            BatchSharedKeyCredentials batchCredentials = new BatchSharedKeyCredentials(batchSettings.AccountUrl.ToString(), batchSettings.AccountName, batchSettings.AccountKey);
+            BatchSharedKeyCredentials batchCredentials = new BatchSharedKeyCredentials(batchSettings.AccountUrl, batchSettings.AccountName, batchSettings.AccountKey);
             using(BatchClient batchClient = BatchClient.Open(batchCredentials))
             {
                 ImageReference imageReference = CreateImageReference();
@@ -142,14 +142,14 @@ namespace BatchController
 
                 //you likely don't want this here in a real function as the initial pool creation step will take 5-10 mins 
                 //minimum to finish. Instead split monitoring into its own durable function.
-                TimeSpan timeout = TimeSpan.FromMinutes(60);
-                IEnumerable<CloudTask> addedTasks = batchClient.JobOperations.ListTasks(poolSettings.JobId);
-                batchClient.Utilities.CreateTaskStateMonitor().WaitAll(addedTasks, TaskState.Completed, timeout);
+                //TimeSpan timeout = TimeSpan.FromMinutes(60);
+                //IEnumerable<CloudTask> addedTasks = batchClient.JobOperations.ListTasks(poolSettings.JobId);
+                //batchClient.Utilities.CreateTaskStateMonitor().WaitAll(addedTasks, TaskState.Completed, timeout);
                 
-                if(poolSettings.ShouldDeleteJob)
-                {
-                    batchClient.JobOperations.DeleteJob(poolSettings.JobId);
-                }
+                //if(poolSettings.ShouldDeleteJob)
+                //{
+                //    batchClient.JobOperations.DeleteJob(poolSettings.JobId);
+                //}
             }
         }
 

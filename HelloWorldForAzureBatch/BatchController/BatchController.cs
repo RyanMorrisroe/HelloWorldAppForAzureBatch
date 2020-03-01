@@ -1,13 +1,10 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Microsoft.Extensions.Configuration;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.Azure.Batch.Auth;
@@ -25,26 +22,34 @@ namespace BatchController
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
-            string name = req.Query["name"];
-
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
-
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+            log.LogInformation("Function started processing the request");
+            try
+            {
+                await Main(log);
+                return new OkResult();
+            }
+            catch(Exception ex)
+            {
+                log.LogError(ex, ex.Message);
+                return new BadRequestResult();
+            }
+            finally
+            {
+                log.LogInformation("Function finished processing the request");
+            }
         }
 
         private static async Task Main(ILogger log)
         {
-            PoolSettings poolSettings = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("PoolSettings.json")
-                .Build()
-                .Get<PoolSettings>();
+            PoolSettings poolSettings = new PoolSettings()
+            {
+                PoolId = Environment.GetEnvironmentVariable("POOL_ID"),
+                JobId = Environment.GetEnvironmentVariable("POOL_JOB_ID"),
+                PoolNodeCount = int.Parse(Environment.GetEnvironmentVariable("POOL_NODE_COUNT")),
+                PoolOSFamily = Environment.GetEnvironmentVariable("POOL_OS_FAMILY"),
+                PoolVMSize = Environment.GetEnvironmentVariable("POOL_VM_SIZE"),
+                ShouldDeleteJob = bool.Parse(Environment.GetEnvironmentVariable("POOL_SHOULD_DELETE_JOB"))
+            };
 
             string storageAccountName = Environment.GetEnvironmentVariable("BATCH_STORAGE_ACCOUNT_NAME");
             string storageAccountKey = Environment.GetEnvironmentVariable("BATCH_STORAGE_ACCOUNT_KEY");
@@ -88,7 +93,7 @@ namespace BatchController
                 {
                     string taskID = string.Format("Task{0}", counter);
                     string inputFileName = resourceFile.FilePath;
-                    string outputDirectory = "//output//";
+                    string outputDirectory = "\\output\\";
                     string taskCommandLine = string.Format("BatchProgram.exe {0} {1}", inputFileName, outputDirectory);
 
                     CloudTask task = new CloudTask(taskID, taskCommandLine)
@@ -97,6 +102,7 @@ namespace BatchController
                         OutputFiles = new List<OutputFile>() { GetTaskOutputFile(outputDirectory, resourceFile.FilePath.Replace("\\input\\" ,""), outputContainer) }
                     };
                     tasks.Add(task);
+                    counter++;
                 }
                 await batchClient.JobOperations.AddTaskAsync(poolSettings.JobId, tasks);
 
@@ -144,7 +150,13 @@ namespace BatchController
                         virtualMachineSize: poolSettings.PoolVMSize,
                         virtualMachineConfiguration: vmConfiguration
                     );
-                pool.ApplicationPackageReferences.Add(new ApplicationPackageReference() { ApplicationId = Environment.GetEnvironmentVariable("BATCH_APPLICATION_ID"), Version = Environment.GetEnvironmentVariable("BATCH_APPLICATION_VERSION") });
+                pool.ApplicationPackageReferences = new List<ApplicationPackageReference>() {
+                    new ApplicationPackageReference() 
+                    { 
+                        ApplicationId = Environment.GetEnvironmentVariable("BATCH_APPLICATION_ID"), 
+                        Version = Environment.GetEnvironmentVariable("BATCH_APPLICATION_VERSION") 
+                    } 
+                };
                 await pool.CommitAsync();
             }
             catch(BatchException exception)

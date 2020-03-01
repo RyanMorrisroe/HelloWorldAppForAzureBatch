@@ -242,6 +242,10 @@ namespace BatchController
                 CloudJob job = batchClient.JobOperations.CreateJob();
                 job.Id = poolSettings.JobId;
                 job.PoolInformation = new PoolInformation() { PoolId = poolSettings.PoolId };
+                if(poolSettings.ShouldDeleteJob)
+                {
+                    job.OnAllTasksComplete = OnAllTasksComplete.TerminateJob;
+                }
                 await job.CommitAsync().ConfigureAwait(true);
             }
             catch(BatchException exception)

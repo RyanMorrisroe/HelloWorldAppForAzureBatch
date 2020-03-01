@@ -11,13 +11,16 @@ using Microsoft.Azure.Batch;
 using Microsoft.Azure.Batch.Common;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace BatchController
 {
     public static class BatchControllerFunction
     {
         [FunctionName("BatchController")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]ILogger log)
+        public static async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequest req,
+            ILogger log)
         {
             log.LogInformation("Function started processing the request");
             try

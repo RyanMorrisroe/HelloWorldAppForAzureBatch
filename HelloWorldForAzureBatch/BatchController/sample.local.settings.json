@@ -1,0 +1,27 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "BATCH_APPLICATION_ID": "batchprogram",
+    "BATCH_APPLICATION_VERSION": "1.0",
+    "BATCH_APPLICATION_EXECUTABLE": "BatchProgram.exe",
+    "BATCH_ACCOUNT_KEY": "{YOUR BATCH ACCOUNT KEY HERE}",
+    "BATCH_ACCOUNT_NAME": "{YOUR BATCH ACCOUNT NAME HERE}",
+    "BATCH_ACCOUNT_URL": "{YOUR BATCH ACCOUNT URL HERE}",
+    "BATCH_STORAGE_ACCOUNT_KEY": "{YOUR STORAGE ACCOUNT KEY HERE}",
+    "BATCH_STORAGE_ACCOUNT_NAME": "{YOUR STORAGE ACCOUNT NAME HERE}",
+    "BATCH_STORAGE_INPUT_CONTAINER_NAME": "input",
+    "BATCH_STORAGE_OUTPUT_CONTAINER_NAME": "output",
+    "POOL_ID": "HelloWorldPool",
+    "POOL_JOB_ID": "HelloWorldJob",
+    "POOL_OS_FAMILY": "6",
+    "POOL_VM_SIZE": "Standard_A1_v2",
+    "POOL_USE_AUTOSCALE": "true",
+    "POOL_TARGET_VM_COUNT": "3",
+    "POOL_STARTING_VM_COUNT": "1",
+    "POOL_MIN_VM_COUNT": "0",
+    "POOL_MAX_VM_COUNT": "5",
+    "POOL_SHOULD_DELETE_JOB": "true"
+  }
+}

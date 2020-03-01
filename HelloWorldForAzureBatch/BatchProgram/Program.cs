@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace HelloWorldForAzureBatch
 {
@@ -9,13 +10,16 @@ namespace HelloWorldForAzureBatch
             string inputFilePath = args[0];
             string outputFileDirectory = args[1];
 
-            if(!outputFileDirectory.EndsWith('\\'))
+            Console.WriteLine("Program has been called");
+            if (!outputFileDirectory.EndsWith('\\'))
             {
                 outputFileDirectory += "\\";
             }
 
             string inputFileName = ReadFile(inputFilePath);
+            Console.WriteLine($"Input file read, filename is {inputFileName}");
             WriteOutput(inputFileName, outputFileDirectory);
+            Directory.CreateDirectory(outputFileDirectory);
         }
 
         private static string ReadFile(string filePath)
@@ -30,14 +34,13 @@ namespace HelloWorldForAzureBatch
 
         private static void WriteOutput(string fileName, string outputFileDirectory)
         {
-            if(!outputFileDirectory.Contains(Directory.GetCurrentDirectory()))
+            Console.WriteLine($"Checking for output file directory {outputFileDirectory}");
+            if(!Directory.Exists(outputFileDirectory))
             {
-                outputFileDirectory = Directory.GetCurrentDirectory() + outputFileDirectory;
-                if(!Directory.Exists(outputFileDirectory))
-                {
-                    Directory.CreateDirectory(outputFileDirectory);
-                }
+                Console.WriteLine("Output file directory not found, creating");
+                Directory.CreateDirectory(outputFileDirectory);
             }
+            Console.WriteLine("Writing text to output file");
             File.WriteAllText($"{outputFileDirectory}{fileName}", $"Batch program successfully read {fileName}. Hurray!");
         }
     }

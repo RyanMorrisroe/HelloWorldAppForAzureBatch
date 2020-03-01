@@ -25,8 +25,8 @@ namespace BatchController
             log.LogInformation("Function started processing the request");
             try
             {
-                await Main(log).ConfigureAwait(true);
-                return new OkResult();
+                BatchControllerResponse response = await Main(log).ConfigureAwait(true);
+                return new OkObjectResult(response);
             }
             catch(Exception ex)
             {
@@ -39,7 +39,7 @@ namespace BatchController
             }
         }
 
-        private static async Task Main(ILogger log)
+        private static async Task<BatchControllerResponse> Main(ILogger log)
         {
             PoolSettings poolSettings = new PoolSettings()
             {
@@ -139,7 +139,13 @@ namespace BatchController
                     }
                 }
                 await batchClient.JobOperations.AddTaskAsync(poolSettings.JobId, tasks).ConfigureAwait(true);
-
+                BatchControllerResponse response = new BatchControllerResponse()
+                {
+                    PoolId = poolSettings.PoolId,
+                    JobId = poolSettings.JobId
+                };
+                tasks.ForEach(x => response.TaskIds.Add(x.Id));
+                return response;
                 //you likely don't want this here in a real function as the initial pool creation step will take 5-10 mins 
                 //minimum to finish. Instead split monitoring into its own durable function.
                 //TimeSpan timeout = TimeSpan.FromMinutes(60);

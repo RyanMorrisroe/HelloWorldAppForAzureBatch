@@ -14,7 +14,7 @@ namespace BatchController.Functions
         {
             Contract.Requires(context != null);
             MonitorBatchJobInput input = context.GetInput<MonitorBatchJobInput>();
-            bool jobComplete = await BatchMonitor.IsJobComplete(input.JobId).ConfigureAwait(true);
+            bool jobComplete = BatchMonitor.IsJobComplete(input.JobId);
             if(jobComplete)
             {
                 //Do some stuff, maybe call a pipeline or something

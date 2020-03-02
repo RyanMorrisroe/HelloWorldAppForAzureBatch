@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Microsoft.Azure.Batch.Auth;
 using Microsoft.Azure.Batch;
 using Microsoft.Azure.Batch.Common;
@@ -8,7 +7,8 @@ namespace BatchController
 {
     public static class BatchMonitor
     {
-        public static async Task<bool> IsJobComplete(string jobId)
+        //This cannot be async because if it is the durable function will crash out
+        public static bool IsJobComplete(string jobId)
         {
             BatchAccountSettings batchSettings = new BatchAccountSettings()
             {
@@ -20,7 +20,7 @@ namespace BatchController
             BatchSharedKeyCredentials batchCredentials = new BatchSharedKeyCredentials(batchSettings.AccountUrl, batchSettings.AccountName, batchSettings.AccountKey);
             using (BatchClient batchClient = BatchClient.Open(batchCredentials))
             {
-                CloudJob jobInfo = await batchClient.JobOperations.GetJobAsync(jobId).ConfigureAwait(true);
+                CloudJob jobInfo = batchClient.JobOperations.GetJob(jobId);
                 if(jobInfo.State == JobState.Completed)
                 {
                     return true;

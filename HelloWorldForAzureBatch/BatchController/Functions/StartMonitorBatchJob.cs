@@ -26,7 +26,7 @@ namespace BatchController.Functions
                 requestBody = await reader.ReadToEndAsync().ConfigureAwait(true);
             }
             BatchCreationResponse data = JsonConvert.DeserializeObject<BatchCreationResponse>(requestBody);
-            string instanceId = await starter.StartNewAsync("AzureBatchJobMonitorFunction", data.JobId).ConfigureAwait(true);
+            string instanceId = await starter.StartNewAsync("MonitorBatchJob", data.JobId).ConfigureAwait(true);
             log.LogInformation($"Started monitoring orchestration function with Id = {instanceId}");
             return new OkObjectResult(starter.CreateCheckStatusResponse(req, instanceId));
         }

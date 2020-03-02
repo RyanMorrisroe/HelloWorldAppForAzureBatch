@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -8,6 +9,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+
 
 namespace BatchController.Functions
 {
@@ -24,11 +26,16 @@ namespace BatchController.Functions
             using(StreamReader reader = new StreamReader(req.Body))
             {
                 requestBody = await reader.ReadToEndAsync().ConfigureAwait(true);
+                req.Body = new MemoryStream(Encoding.ASCII.GetBytes(requestBody)); //You have to do this because reading the body screws up the request and CreateCheckStatusResponse will thrown an exception. This is a .NET Core bug.
             }
             BatchCreationResponse data = JsonConvert.DeserializeObject<BatchCreationResponse>(requestBody);
-            string instanceId = await starter.StartNewAsync("MonitorBatchJob", data.JobId).ConfigureAwait(true);
+            MonitorBatchJobInput input = new MonitorBatchJobInput()
+            {
+                JobId = data.JobId
+            };
+            string instanceId = await starter.StartNewAsync("MonitorBatchJob", input).ConfigureAwait(true);
             log.LogInformation($"Started monitoring orchestration function with Id = {instanceId}");
-            return new OkObjectResult(starter.CreateCheckStatusResponse(req, instanceId));
+            return starter.CreateCheckStatusResponse(req, instanceId);
         }
     }
 }

@@ -13,8 +13,8 @@ namespace BatchController.Functions
         public static async Task Run([OrchestrationTrigger] IDurableOrchestrationContext context)
         {
             Contract.Requires(context != null);
-            string jobId = context.GetInput<string>();
-            bool jobComplete = await BatchMonitor.IsJobComplete(jobId).ConfigureAwait(true);
+            MonitorBatchJobInput input = context.GetInput<MonitorBatchJobInput>();
+            bool jobComplete = await BatchMonitor.IsJobComplete(input.JobId).ConfigureAwait(true);
             if(jobComplete)
             {
                 //Do some stuff, maybe call a pipeline or something
@@ -23,7 +23,7 @@ namespace BatchController.Functions
             {
                 DateTime nextRun = context.CurrentUtcDateTime.AddMinutes(int.Parse(Environment.GetEnvironmentVariable("BATCH_MONITOR_POLLING_TIME_IN_MINUTES")));
                 await context.CreateTimer(nextRun, CancellationToken.None).ConfigureAwait(true);
-                context.ContinueAsNew(jobId);
+                context.ContinueAsNew(input);
             }
         }
     }

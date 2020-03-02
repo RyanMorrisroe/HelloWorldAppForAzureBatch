@@ -1,46 +1,23 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.Azure.Batch.Auth;
 using Microsoft.Azure.Batch;
 using Microsoft.Azure.Batch.Common;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
 
 namespace BatchController
 {
-    public static class BatchControllerFunction
+    public static class BatchCreator
     {
-        [FunctionName("BatchController")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequest req,
-            ILogger log)
+        public static async Task<BatchCreationResponse> CreateBatchJob(ILogger log)
         {
-            log.LogInformation("Function started processing the request");
-            try
-            {
-                BatchControllerResponse response = await Main(log).ConfigureAwait(true);
-                return new OkObjectResult(response);
-            }
-            catch(Exception ex)
-            {
-                log.LogError(ex, ex.Message);
-                return new BadRequestResult();
-            }
-            finally
-            {
-                log.LogInformation("Function finished processing the request");
-            }
-        }
+            Contract.Requires(log != null);
 
-        private static async Task<BatchControllerResponse> Main(ILogger log)
-        {
             PoolSettings poolSettings = new PoolSettings()
             {
                 PoolId = Environment.GetEnvironmentVariable("POOL_ID"),
@@ -51,7 +28,7 @@ namespace BatchController
                 ShouldDeleteJob = bool.Parse(Environment.GetEnvironmentVariable("POOL_SHOULD_DELETE_JOB"))
             };
 
-            if(poolSettings.UseAutoscale)
+            if (poolSettings.UseAutoscale)
             {
                 poolSettings.StartingVMCount = int.Parse(Environment.GetEnvironmentVariable("POOL_STARTING_VM_COUNT"));
                 poolSettings.MinVMCount = int.Parse(Environment.GetEnvironmentVariable("POOL_MIN_VM_COUNT"));
@@ -87,20 +64,20 @@ namespace BatchController
 
             CloudBlobClient blobClient = CreateBlobClient(storageSettings.AccountName, storageSettings.AccountKey);
             CloudBlobContainer inputContainer = blobClient.GetContainerReference(storageSettings.InputContainerName);
-            if(!(await inputContainer.ExistsAsync().ConfigureAwait(true)))
+            if (!(await inputContainer.ExistsAsync().ConfigureAwait(true)))
             {
                 log.LogError($"Blob storage input container, {storageSettings.InputContainerName}, does not exist");
                 throw new Exception("Blob storage input container does not exist");
             }
             CloudBlobContainer outputContainer = blobClient.GetContainerReference(storageSettings.OutputContainerName);
-            if(!(await outputContainer.ExistsAsync().ConfigureAwait(true)))
+            if (!(await outputContainer.ExistsAsync().ConfigureAwait(true)))
             {
                 log.LogInformation("Creating blob storage output container");
                 await outputContainer.CreateIfNotExistsAsync().ConfigureAwait(true);
             }
 
             BatchSharedKeyCredentials batchCredentials = new BatchSharedKeyCredentials(batchSettings.AccountUrl, batchSettings.AccountName, batchSettings.AccountKey);
-            using(BatchClient batchClient = BatchClient.Open(batchCredentials))
+            using (BatchClient batchClient = BatchClient.Open(batchCredentials))
             {
                 ImageReference imageReference = CreateImageReference();
                 VirtualMachineConfiguration vmConfiguration = CreateVirtualMachineReference(imageReference);
@@ -114,7 +91,7 @@ namespace BatchController
                 log.LogInformation("Creating tasks...");
                 List<CloudTask> tasks = new List<CloudTask>();
                 int counter = 1;
-                await foreach(ResourceFile resourceFile in GetFilesFromContainer(inputContainer))
+                await foreach (ResourceFile resourceFile in GetFilesFromContainer(inputContainer))
                 {
                     foreach (BatchApplicationSettings application in batchSettings.Applications)
                     {
@@ -139,34 +116,24 @@ namespace BatchController
                     }
                 }
                 await batchClient.JobOperations.AddTaskAsync(poolSettings.JobId, tasks).ConfigureAwait(true);
-                BatchControllerResponse response = new BatchControllerResponse()
+                BatchCreationResponse response = new BatchCreationResponse()
                 {
                     PoolId = poolSettings.PoolId,
                     JobId = poolSettings.JobId
                 };
                 tasks.ForEach(x => response.TaskIds.Add(x.Id));
                 return response;
-                //you likely don't want this here in a real function as the initial pool creation step will take 5-10 mins 
-                //minimum to finish. Instead split monitoring into its own durable function.
-                //TimeSpan timeout = TimeSpan.FromMinutes(60);
-                //IEnumerable<CloudTask> addedTasks = batchClient.JobOperations.ListTasks(poolSettings.JobId);
-                //batchClient.Utilities.CreateTaskStateMonitor().WaitAll(addedTasks, TaskState.Completed, timeout);
-                
-                //if(poolSettings.ShouldDeleteJob)
-                //{
-                //    batchClient.JobOperations.DeleteJob(poolSettings.JobId);
-                //}
             }
         }
 
-        private static CloudBlobClient CreateBlobClient(string storageAccountName, string storageAccountKey)
+        public static CloudBlobClient CreateBlobClient(string storageAccountName, string storageAccountKey)
         {
             string connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};";
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
             return storageAccount.CreateCloudBlobClient();
         }
 
-        private static ImageReference CreateImageReference()
+        public static ImageReference CreateImageReference()
         {
             return new ImageReference(
                 publisher: "MicrosoftWindowsServer",
@@ -175,15 +142,23 @@ namespace BatchController
                 version: "latest");
         }
 
-        private static VirtualMachineConfiguration CreateVirtualMachineReference(ImageReference imageReference)
+        public static VirtualMachineConfiguration CreateVirtualMachineReference(ImageReference imageReference)
         {
+            Contract.Requires(imageReference != null);
+
             return new VirtualMachineConfiguration(
                 imageReference: imageReference,
                 nodeAgentSkuId: "batch.node.windows amd64");
         }
 
-        private static async Task CreateBatchPool(BatchClient batchClient, List<BatchApplicationSettings> applications, VirtualMachineConfiguration vmConfiguration, PoolSettings poolSettings, ILogger log)
+        public static async Task CreateBatchPool(BatchClient batchClient, List<BatchApplicationSettings> applications, VirtualMachineConfiguration vmConfiguration, PoolSettings poolSettings, ILogger log)
         {
+            Contract.Requires(batchClient != null);
+            Contract.Requires(applications != null);
+            Contract.Requires(vmConfiguration != null);
+            Contract.Requires(poolSettings != null);
+            Contract.Requires(log != null);
+
             try
             {
                 CloudPool pool = batchClient.PoolOperations.CreatePool(
@@ -210,7 +185,8 @@ namespace BatchController
                     pool.TargetDedicatedComputeNodes = poolSettings.TargetVMCount;
                 }
                 List<ApplicationPackageReference> applicationReferences = new List<ApplicationPackageReference>();
-                foreach(BatchApplicationSettings application in applications) {
+                foreach (BatchApplicationSettings application in applications)
+                {
                     applicationReferences.Add(
                         new ApplicationPackageReference()
                         {
@@ -222,9 +198,9 @@ namespace BatchController
                 pool.ApplicationPackageReferences = applicationReferences;
                 await pool.CommitAsync().ConfigureAwait(true);
             }
-            catch(BatchException exception)
+            catch (BatchException exception)
             {
-                if(exception.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.PoolExists)
+                if (exception.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.PoolExists)
                 {
                     log.LogInformation($"Pool {poolSettings.PoolId} already exists");
                 }
@@ -235,22 +211,26 @@ namespace BatchController
             }
         }
 
-        private static async Task CreateBatchJob(BatchClient batchClient, PoolSettings poolSettings, ILogger log)
+        public static async Task CreateBatchJob(BatchClient batchClient, PoolSettings poolSettings, ILogger log)
         {
+            Contract.Requires(batchClient != null);
+            Contract.Requires(poolSettings != null);
+            Contract.Requires(log != null);
+
             try
             {
                 CloudJob job = batchClient.JobOperations.CreateJob();
                 job.Id = poolSettings.JobId;
                 job.PoolInformation = new PoolInformation() { PoolId = poolSettings.PoolId };
-                if(poolSettings.ShouldDeleteJob)
+                if (poolSettings.ShouldDeleteJob)
                 {
                     job.OnAllTasksComplete = OnAllTasksComplete.TerminateJob;
                 }
                 await job.CommitAsync().ConfigureAwait(true);
             }
-            catch(BatchException exception)
+            catch (BatchException exception)
             {
-                if(exception.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.JobExists)
+                if (exception.RequestInformation?.BatchError?.Code == BatchErrorCodeStrings.JobExists)
                 {
                     log.LogInformation($"Job {poolSettings.JobId} already exists");
                 }
@@ -261,8 +241,10 @@ namespace BatchController
             }
         }
 
-        private static async IAsyncEnumerable<ResourceFile> GetFilesFromContainer(CloudBlobContainer container)
+        public static async IAsyncEnumerable<ResourceFile> GetFilesFromContainer(CloudBlobContainer container)
         {
+            Contract.Requires(container != null);
+
             int? maxResultsPerRequest = 500;
             BlobContinuationToken continuationToken = null;
 
@@ -286,8 +268,12 @@ namespace BatchController
             while (continuationToken != null);
         }
 
-        private static OutputFile GetTaskOutputFile(string outputDirectory, string fileName, CloudBlobContainer outputContainer)
+        public static OutputFile GetTaskOutputFile(string outputDirectory, string fileName, CloudBlobContainer outputContainer)
         {
+            Contract.Requires(outputDirectory != null);
+            Contract.Requires(fileName != null);
+            Contract.Requires(outputContainer != null);
+
             SharedAccessBlobPolicy sasPolicy = new SharedAccessBlobPolicy()
             {
                 SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1),
@@ -301,8 +287,13 @@ namespace BatchController
                 uploadOptions: new OutputFileUploadOptions(OutputFileUploadCondition.TaskSuccess));
         }
 
-        private static OutputFile GetStandardOutFile(string jobID, string taskID, CloudBlobContainer outputContainer, string filePattern = @"..\std*.txt")
+        public static OutputFile GetStandardOutFile(string jobID, string taskID, CloudBlobContainer outputContainer, string filePattern = @"..\std*.txt")
         {
+            Contract.Requires(jobID != null);
+            Contract.Requires(taskID != null);
+            Contract.Requires(outputContainer != null);
+            Contract.Requires(filePattern != null);
+
             SharedAccessBlobPolicy sasPolicy = new SharedAccessBlobPolicy()
             {
                 SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1),

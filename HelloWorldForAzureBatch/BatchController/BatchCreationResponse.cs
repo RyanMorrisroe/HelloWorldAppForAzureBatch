@@ -2,7 +2,7 @@
 
 namespace BatchController
 {
-    public class BatchControllerResponse
+    public class BatchCreationResponse
     {
         public string PoolId {get;set;}
         public string JobId { get; set; }

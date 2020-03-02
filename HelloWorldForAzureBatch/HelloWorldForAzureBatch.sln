@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BatchProgram", "BatchProgram\BatchProgram.csproj", "{DF480B4E-E0F2-4898-A090-5DFDF0CA1C61}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BatchController", "BatchController\BatchController.csproj", "{757CE04A-0178-4F47-A9A0-8DE489DB2B8C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BatchController", "BatchController\BatchController.csproj", "{757CE04A-0178-4F47-A9A0-8DE489DB2B8C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
